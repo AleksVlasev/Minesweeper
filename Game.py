@@ -6,6 +6,7 @@ n = 15
 N = 20
 
 from random import randrange
+from prettytable import PrettyTable
 
 faces = {'unexplored': '#', 'flagged': 'F', 'mine': '*', '0': ' ', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
 		 '6': '6', '7': '7', '8': '8'}
@@ -37,6 +38,15 @@ class Box(object):
 	def neighbors(self):
 		return []
 
+	def get_face(self):
+		if self.has_flag:
+			return faces['flagged']
+		elif self.covered:
+			return faces['unexplored']
+		else:
+			return faces[str(self.neighboring_mines)]
+
+
 	def press(self):
 		if not self.pressed and not self.has_flag:
 			self.covered = False
@@ -46,7 +56,7 @@ class Box(object):
 				return True
 
 
-def generate_boxes(m=20, n=10):
+def generate_boxes(m=10, n=15):
 	return [[Box(i, j) for j in range(0, n)] for i in range(0, m)]
 
 
@@ -66,4 +76,23 @@ def update_neighboring_mines(field):
 			box.count_mines()
 
 
+def get_field_faces(field):
+	field_faces =[]
+	for row in field:
+		temp = []
+		for box in row:
+			temp.append(box.get_face())
+		field_faces.append(temp)
+	return field_faces
 
+
+def print_field(m, n, field):
+	field_faces = get_field_faces(field)
+	table = PrettyTable(range(0, n + 1))
+	for i in range(0, m):
+		table.add_row([i+1]+field_faces[i])
+	print(table)
+
+if __name__ == '__main__':
+	field = generate_boxes(m, n)
+	print_field(m, n, field)
