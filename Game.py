@@ -13,9 +13,7 @@ faces = {'unexplored': '#', 'flagged': 'F', 'mine': 'X', '0': ' ', '1': '1', '2'
 
 class Box(object):
 
-	size = X
-
-	def __init__(self, x_pos, y_pos, has_mine=False, has_flag=False, pressed=False, covered=False, neighboring_mines=0):
+	def __init__(self, x_pos, y_pos, has_mine=False, has_flag=False, pressed=False, covered=True, neighboring_mines=0):
 		self.x_pos = x_pos
 		self.y_pos = y_pos
 		self.has_mine = has_mine
@@ -26,17 +24,6 @@ class Box(object):
 
 	def place_mine(self):
 		self.has_mine = True
-
-	def place_flag(self):
-		self.has_mine = True
-
-	def count_mines(self):
-		for box in self.neighbors():
-			if box.has_mine:
-				self.neighboring_mines += 1
-
-	def get_neighbors(self):
-		return []
 
 	def get_face(self):
 		if self.has_flag:
@@ -50,11 +37,20 @@ class Box(object):
 
 	def press(self):
 		if not self.pressed and not self.has_flag:
+			self.pressed = True
 			self.covered = False
 			if self.has_mine:
+				print("Yikes, you uncovered a mine. BOOM!")
 				return False
 			else:
 				return True
+
+	def place_flag(self):
+		if not self.pressed:
+			self.covered = False
+			self.has_flag = True
+		else:
+			print("Oops, you've already selected this cell")
 
 
 class Field(object):
@@ -68,8 +64,11 @@ class Field(object):
 	def generate_boxes(self):
 		return [[Box(i, j) for j in range(0, self.width)] for i in range(0, self.height)]
 
-	def place_mines(self):
+	def place_mines(self, x, y):
 		remaining = [[i, j] for j in range(0, self.width) for i in range(0, self.height)]
+		remaining.pop(remaining.index([x, y]))
+		self.field[x][y].covered = False
+		self.field[x][y].pressed = True
 		for k in range(0, self.num_mines):
 			num = randrange(0, len(remaining))
 			x_pos = remaining[num][0]
@@ -104,18 +103,57 @@ class Field(object):
 		table = PrettyTable(top_cells)
 		table.hrules = True
 		table.align = "c"
-		# table.border = False
+		table.border = False
 		field_faces = self.get_field_faces()
-		for i in range(0, m):
+		for i in range(0, self.height):
 			table.add_row([side_cells[i]]+field_faces[i])
 		print(table)
 
+def choose(string, cond=(lambda x: False), values=[]):
+	chosen = False
+	while not chosen:
+		answer = input(string)
+		if answer in values or map(cond, answer):
+			chosen = True
+	return answer
+
+def between(expression, X, Y):
+	if X <= expression <= Y:
+		return True
+	else:
+		return False
+
+def choose_range(string="a number", X=0, Y=1):
+	return choose("Input {} between {} and {}: ".format(string, X, Y), (lambda x: between(x, X, Y)))
 
 
 
 if __name__ == '__main__':
-	game = Field(m, n, N)
+	# height = int(choose_range("height", 5, 20))
+	# width = int(choose_range("width", 5, 20))
+	# num_mines = int(choose_range("number of mines", 1, height * width - 1))
+	# print("Initializing...")
+	height = 10
+	width = 10
+	num_mines = 20
+	game = Field(height, width, num_mines)
+
+	print("Please input the first cell you will play")
+	i_play = int(choose_range("row number", 1, height)) - 1
+	j_play = int(choose_range("column number", 1, width)) - 1
 	# game.print_field()
-	game.place_mines()
+	game.place_mines(i_play, j_play)
 	game.update_neighboring_mines()
-	game.print_field()
+
+	win_condition = True
+	while win_condition:
+		print("\n")
+		game.print_field()
+		ans = choose("\nSelect cell (s) or flag it (f):", values=['s', 'f'])
+		i_play = int(choose_range("row number", 1, height)) - 1
+		j_play = int(choose_range("column number", 1, width)) - 1
+		if ans == 's':
+			win_condition = game.field[i_play][j_play].press()
+		else:
+			game.field[i_play][j_play].place_flag()
+
