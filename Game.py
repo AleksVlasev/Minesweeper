@@ -8,49 +8,60 @@ N = 30
 from random import randrange
 from prettytable import PrettyTable
 
-faces = {'unexplored': '#', 'flagged': 'F', 'mine': 'X', '0': ' ', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
+faces = {'covered': '#', 'flagged': 'F', 'mine': 'X', '0': ' ', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5',
 		 '6': '6', '7': '7', '8': '8'}
 
 class Box(object):
 
-	def __init__(self, x_pos, y_pos, has_mine=False, has_flag=False, pressed=False, covered=True, neighboring_mines=0):
+	def __init__(self, x_pos, y_pos, has_mine=False, has_flag=False, covered=True, neighboring_mines=0):
 		self.x_pos = x_pos
 		self.y_pos = y_pos
 		self.has_mine = has_mine
 		self.has_flag = has_flag
-		self.pressed = pressed
 		self.covered = covered
 		self.neighboring_mines = neighboring_mines
 
 	def place_mine(self):
 		self.has_mine = True
 
+	# def get_face(self):
+	# 	if self.has_flag:
+	# 		return faces['flagged']
+	# 	elif self.covered:
+	# 		return faces['covered']
+	# 	else:
+	# 		return faces[str(self.neighboring_mines)]
+
 	def get_face(self):
 		if self.has_flag:
 			return faces['flagged']
-		elif self.covered:
-			return faces['unexplored']
 		elif self.has_mine:
 			return faces['mine']
+		elif self.covered:
+			return faces['covered']
 		else:
 			return faces[str(self.neighboring_mines)]
 
-	def press(self):
-		if not self.pressed and not self.has_flag:
-			self.pressed = True
+	def uncover(self):
+		if self.covered and not self.has_flag:
 			self.covered = False
 			if self.has_mine:
 				print("Yikes, you uncovered a mine. BOOM!")
 				return False
 			else:
 				return True
+		elif self.has_flag:
+			print("You cannot press because there is a flag here!")
+			return True
+		else:
+			print("Oops, you have already uncovered this box!")
+			return True
 
 	def place_flag(self):
-		if not self.pressed:
-			self.covered = False
+		if self.covered:
 			self.has_flag = True
 		else:
-			print("Oops, you've already selected this cell")
+			print("Oops, you have already uncovered this box")
 
 
 class Field(object):
@@ -68,7 +79,6 @@ class Field(object):
 		remaining = [[i, j] for j in range(0, self.width) for i in range(0, self.height)]
 		remaining.pop(remaining.index([x, y]))
 		self.field[x][y].covered = False
-		self.field[x][y].pressed = True
 		for k in range(0, self.num_mines):
 			num = randrange(0, len(remaining))
 			x_pos = remaining[num][0]
@@ -109,24 +119,23 @@ class Field(object):
 			table.add_row([side_cells[i]]+field_faces[i])
 		print(table)
 
-def choose(string, cond=(lambda x: False), values=[]):
+
+def choose_values(string, values=[]):
 	chosen = False
 	while not chosen:
 		answer = input(string)
-		if answer in values or map(cond, answer):
+		if answer in values:
 			chosen = True
 	return answer
 
-def between(expression, X, Y):
-	if X <= expression <= Y:
-		return True
-	else:
-		return False
 
-def choose_range(string="a number", X=0, Y=1):
-	return choose("Input {} between {} and {}: ".format(string, X, Y), (lambda x: between(x, X, Y)))
-
-
+def choose_range(string="a number", x=0, y=1):
+	chosen = False
+	while not chosen:
+		num = int(input("Input {} between {} and {}: ".format(string, x, y)))
+		if x <= num <= y:
+			chosen = True
+	return num
 
 if __name__ == '__main__':
 	# height = int(choose_range("height", 5, 20))
@@ -149,11 +158,16 @@ if __name__ == '__main__':
 	while win_condition:
 		print("\n")
 		game.print_field()
-		ans = choose("\nSelect cell (s) or flag it (f):", values=['s', 'f'])
+		ans = choose_values("\nSelect cell (s) or flag it (f): ", ['s', 'f'])
 		i_play = int(choose_range("row number", 1, height)) - 1
 		j_play = int(choose_range("column number", 1, width)) - 1
 		if ans == 's':
-			win_condition = game.field[i_play][j_play].press()
+			win_condition = game.field[i_play][j_play].uncover()
 		else:
 			game.field[i_play][j_play].place_flag()
+
+	if win_condition:
+		input("You have won! Press any key to exit")
+	else:
+		input("You have lost. Press any key to exit")
 
