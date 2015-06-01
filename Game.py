@@ -116,7 +116,7 @@ class Field(object):
 		table = PrettyTable(top_cells)
 		table.hrules = True
 		table.align = "c"
-		table.border = False
+		# table.border = False
 		field_faces = self.get_field_faces(par)
 		for i in range(0, self.height):
 			table.add_row([side_cells[i]]+field_faces[i])
